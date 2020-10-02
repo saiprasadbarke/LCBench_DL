@@ -9,7 +9,7 @@ def delete_constant_features_X(X):
     '''This function removes the constant features in the input''' 
     transformedX = []
     for config in X:
-        modifiedConfig = [config["batch_size"],config["max_dropout"],config["max_units"], config["num_layers"], config["learning_rate"],config["momentum"],config["weight_decay"]]
+        modifiedConfig = [config["batch_size"],config["max_dropout"],config["max_units"], config["learning_rate"],config["momentum"],config["weight_decay"]]
         transformedX.append(modifiedConfig)
     return np.asarray(transformedX)
 

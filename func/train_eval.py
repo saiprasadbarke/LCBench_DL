@@ -1,7 +1,9 @@
 import torch
 import numpy as np
+import torch.nn as nn
+from torch.utils.data import DataLoader
 
-def train_model(train_data, validation_data, epochs, model, optimizer, scheduler, criterion):
+def train_model(train_dataloader:DataLoader, validation_dataloader:DataLoader, epochs, model:nn.Module, optimizer, scheduler, criterion):
     train_losses = []
     validation_losses = []
 
@@ -9,7 +11,7 @@ def train_model(train_data, validation_data, epochs, model, optimizer, scheduler
     for epoch in range(epochs):
         batch_losses = []
         #training loop
-        for _idx , data in enumerate(train_data):
+        for _idx , data in enumerate(train_dataloader):
             inputs, labels = data
             optimizer.zero_grad()
             model.train()
@@ -25,7 +27,7 @@ def train_model(train_data, validation_data, epochs, model, optimizer, scheduler
         #validation loop
         with torch.no_grad():
             val_losses = []
-            for _idx, data in enumerate(validation_data):
+            for _idx, data in enumerate(validation_dataloader):
                 inputs, labels = data
                 model.eval()
                 outputs = model(inputs)
@@ -34,20 +36,20 @@ def train_model(train_data, validation_data, epochs, model, optimizer, scheduler
             validation_loss = np.mean(val_losses)
             validation_losses.append(validation_loss)
 
-        print(f"[{epoch+1}] Training loss: {training_loss:.3f}\t Validation loss: {validation_loss:.3f}")
+        print(f"[{epoch+1}] Training loss: {training_loss:.4f}\t Validation loss: {validation_loss:.4f}")
 
     return model, train_losses, validation_losses
 
-def eval_model(test_data, model, criterion):
+def eval_model(test_dataloader: DataLoader, model: nn.Module, criterion):
     test_losses = []
     with torch.no_grad():
-        for i , data in enumerate(test_data,0):
+        for data in enumerate(test_dataloader):
             inputs, labels = data
             model.eval()
             outputs = model(inputs)
-            loss = criterion(outputs.squeeze(), labels)
-            if (i + 1) % 50 ==0:
-                print(f"Test Loss for batch {i+1} : {loss.item():.3f}")
+            loss = criterion(outputs, labels)
             test_losses.append(loss.item())
-    return test_losses
+        test_loss = np.mean(test_losses)
+        print(f"Final test loss: {test_loss:.4f}")    
+    return test_loss
 

@@ -5,11 +5,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 # define the network class
-class FNN_WO_HPO(nn.Module):
+class FNN_WO_HPO_3Layer(nn.Module):
 
     def __init__(self, input_size, hidden_size, output_size):
         # call constructor from superclass
-        super(FNN_WO_HPO, self).__init__()
+        super(FNN_WO_HPO_3Layer, self).__init__()
         # define network layers
         self.input_size = input_size
         self.fc1 = nn.Linear(input_size, hidden_size)

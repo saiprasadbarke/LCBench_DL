@@ -35,8 +35,3 @@ def number_neurons(n_layers):
         neuron_list = [55,48,41,34,27,20,13,6]
 
     return neuron_list
-
-if __name__ == "__main__":
-    MyMLP = MyMLP(4, 0.5, 55, 1)
-    model = MyMLP.model
-    print(model)

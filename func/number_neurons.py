@@ -5,9 +5,9 @@ import sys
 def number_neurons(ni_minus1, n_input, n_output, n_layers):
     '''Number of neurons in each layer recursively. Formula taken from autopytorch-tabular paper'''
     if ni_minus1 == n_output:
-        print("Finished")
+        return
     elif ni_minus1 == 0:
-        print(floor(n_input))
+        print(n_input)
         number_neurons(n_input, n_input, n_output, n_layers)    
     else:
         ni = ni_minus1 - ((n_input - n_output)/(n_layers-1))
@@ -28,6 +28,6 @@ class Capturing(list):
 
 if __name__ == "__main__":
     with Capturing() as output:
-        number_neurons(0, 100, 5, 5)
+        number_neurons(0, 55, 1, 5)
 
     print("Captured output: ", output)

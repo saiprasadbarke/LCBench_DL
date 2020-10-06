@@ -10,6 +10,7 @@ def train_model(train_dataloader:DataLoader, validation_dataloader:DataLoader, e
     #train-validation loop
     for epoch in range(epochs):
         batch_losses = []
+        training_loss = 0.0
         #training loop
         for _idx , data in enumerate(train_dataloader):
             inputs, labels = data
@@ -27,6 +28,7 @@ def train_model(train_dataloader:DataLoader, validation_dataloader:DataLoader, e
         #validation loop
         with torch.no_grad():
             val_losses = []
+            validation_loss = 0.0
             for _idx, data in enumerate(validation_dataloader):
                 inputs, labels = data
                 model.eval()

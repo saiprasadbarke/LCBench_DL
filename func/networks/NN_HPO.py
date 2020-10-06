@@ -1,16 +1,17 @@
 import os
 
 import torch
-import torch.utils.data
+from torch.utils.data import DataLoader
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+from networks.MyMLP import MyMLP
+
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
-
 from hpbandster.core.worker import Worker
 import hpbandster.core.nameserver as hpns
 import hpbandster.core.result as hpres
@@ -20,81 +21,66 @@ import logging
 import pickle
 logging.getLogger('hpbandster').setLevel(logging.DEBUG)
 
-
-
 class PyTorchWorker(Worker):
     def __init__(self, input_size, output_size, train_loader, validation_loader, test_loader, **kwargs):
-            super().__init__(**kwargs)
+        super().__init__(**kwargs)
+        self.train_loader = train_loader
+        self.validation_loader = validation_loader
+        self.test_loader = test_loader
+        self.input_size = input_size
+        self.output_size = output_size
 
-            self.train_loader = train_loader
-            self.validation_loader = validation_loader
-            self.test_loader = test_loader
-            self.input_size = input_size
-            self.output_size = output_size
+    def compute(self, config: CS.Configuration, budget, working_directory:str, *args, **kwargs) -> dict:
+        """
+        Simple MLP
+        The input parameter "config" (dictionary) contains the sampled configurations passed by the bohb optimizer
+        """
+        myMLP = MyMLP(n_layers = config["num_layers"], dropout_rate =config["dropout_rate"] , n_inputs = self.input_size, n_outputs = self.output_size)
+        model = myMLP.model
+        criterion = nn.MSELoss()
+        if config['optimizer'] == 'Adam':
+            optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
+        else:
+            optimizer = torch.optim.SGD(model.parameters(), lr=config['lr'], momentum=config['sgd_momentum'])
 
-    def compute(self, config, budget, working_directory, *args, **kwargs):
-            """
-            Simple example for a compute function using a feed forward network.
-            It is trained on the MNIST dataset.
-            The input parameter "config" (dictionary) contains the sampled configurations passed by the bohb optimizer
-            """
+        for _epoch in range(int(budget)):
+            loss = 0
+            model.train()
+            for inputs, labels in enumerate(self.train_loader):
+                optimizer.zero_grad()
+                output = model(inputs)
+                loss = criterion(output, labels)
+                loss.backward()
+                optimizer.step()
 
-            # device = torch.device('cpu')
-            model = MNISTConvNet(num_conv_layers=config['num_conv_layers'],
-                                                    num_filters_1=config['num_filters_1'],
-                                                    num_filters_2=config['num_filters_2'] if 'num_filters_2' in config else None,
-                                                    num_filters_3=config['num_filters_3'] if 'num_filters_3' in config else None,
-                                                    dropout_rate=config['dropout_rate'],
-                                                    num_fc_units=config['num_fc_units'],
-                                                    kernel_size=3
-            )
-
-            criterion = torch.nn.CrossEntropyLoss()
-            if config['optimizer'] == 'Adam':
-                    optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'])
-            else:
-                    optimizer = torch.optim.SGD(model.parameters(), lr=config['lr'], momentum=config['sgd_momentum'])
-
-            for epoch in range(int(budget)):
-                    loss = 0
-                    model.train()
-                    for i, (x, y) in enumerate(self.train_loader):
-                            optimizer.zero_grad()
-                            output = model(x)
-                            loss = F.nll_loss(output, y)
-                            loss.backward()
-                            optimizer.step()
-
-            train_accuracy = self.evaluate_accuracy(model, self.train_loader)
-            validation_accuracy = self.evaluate_accuracy(model, self.validation_loader)
-            test_accuracy = self.evaluate_accuracy(model, self.test_loader)
+            train_loss = self.evaluate_loss(model, self.train_loader, criterion)
+            validation_loss = self.evaluate_loss(model, self.validation_loader, criterion)
+            test_loss = self.evaluate_loss(model, self.test_loader, criterion)
 
             return ({
-                    'loss': 1-validation_accuracy, # remember: HpBandSter always minimizes!
-                    'info': {       'test accuracy': test_accuracy,
-                                            'train accuracy': train_accuracy,
-                                            'validation accuracy': validation_accuracy,
-                                            'number of parameters': model.number_of_parameters(),
-                                    }
+                    'loss': validation_loss,
+                    'info': {
+                                'test accuracy': test_loss,
+                                'train accuracy': train_loss,
+                                'validation accuracy': validation_loss,
+                                'model': str(model)
+                            }
+                    })
 
-            })
-
-    def evaluate_accuracy(self, model, data_loader):
-            model.eval()
-            correct=0
-            with torch.no_grad():
-                    for x, y in data_loader:
-                            output = model(x)
-                            #test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
-                            pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
-                            correct += pred.eq(y.view_as(pred)).sum().item()
-            #import pdb; pdb.set_trace()
-            accuracy = correct/len(data_loader.sampler)
-            return(accuracy)
+    def evaluate_loss(self, model: nn.Module, data_loader: DataLoader, criterion: nn.MSELoss) -> float:
+        test_losses = []
+        model.eval()
+        with torch.no_grad():
+            for inputs, labels in data_loader:
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                test_losses.append(loss.item())
+            mean_loss = np.mean(test_losses)        
+        return(mean_loss)
 
 
     @staticmethod
-    def get_configspace():
+    def get_configspace() -> CS.ConfigurationSpace:
             """
             It builds the configuration space with the needed hyperparameters.
             It is easily possible to implement different types of hyperparameters.
@@ -118,3 +104,8 @@ class PyTorchWorker(Worker):
             dropout_rate = CSH.UniformFloatHyperparameter('dropout_rate', lower=0.0, upper=0.9, default_value=0.5, log=False)
             cs.add_hyperparameters([dropout_rate])
             return cs
+
+
+
+
+

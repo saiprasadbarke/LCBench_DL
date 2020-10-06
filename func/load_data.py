@@ -5,8 +5,8 @@ import json
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from func.preprocess import delete_constant_features_X, scale_features, reshape_op, remove_nan_metafeatures, create_metafeatures_2d, concatenate_metafeatures_features
-from func.api import Benchmark
+from preprocess import delete_constant_features_X, scale_features, reshape_op, remove_nan_metafeatures, create_metafeatures_2d, concatenate_metafeatures_features
+from api import Benchmark
 
 from torch import from_numpy
 from torch.utils.data import DataLoader, TensorDataset

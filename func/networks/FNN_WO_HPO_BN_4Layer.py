@@ -1,9 +1,5 @@
 #Imports
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
 # define the network class
 class FNN_WO_HPO_BN_4Layer(nn.Module):
 

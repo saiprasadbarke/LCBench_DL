@@ -8,17 +8,19 @@ import torch.optim as optim
 import numpy as np
 
 from networks.MyMLP import MyMLP
-
+from func.load_data import prepare_dataloaders
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 from hpbandster.core.worker import Worker
 
 class PyTorchWorker(Worker):
-    def __init__(self, input_size, output_size, train_loader, validation_loader, test_loader, **kwargs):
+    '''My BOHB worker'''
+    def __init__(self, input_size, output_size, train_tuple, validation_tuple, test_tuple, **kwargs):
         super().__init__(**kwargs)
-        self.train_loader = train_loader
-        self.validation_loader = validation_loader
-        self.test_loader = test_loader
+        '''Initialize the data sturctures , input and output sizes'''
+        self.train_tuple = train_tuple
+        self.validation_tuple = validation_tuple
+        self.test_tuple = test_tuple
         self.input_size = input_size
         self.output_size = output_size
 
@@ -31,6 +33,9 @@ class PyTorchWorker(Worker):
         model = myMLP.model
         print(model)
         criterion = nn.MSELoss()
+        train_loader = prepare_dataloaders(X_hp=self.train_tuple[0], X_mf=self.train_tuple[1], y= self.train_tuple[2], X_scaling="minmax", y_scaling="minmax", batch_size=config["batch_size"], typeD = "tensor")
+        validation_loader = prepare_dataloaders(X_hp=self.validation_tuple[0], X_mf=self.validation_tuple[1], y= self.validation_tuple[2], X_scaling="minmax",y_scaling="minmax",batch_size=config["batch_size"], typeD = "tensor")
+        test_loader = prepare_dataloaders(X_hp=self.test_tuple[0], X_mf=self.test_tuple[1], y= self.test_tuple[2], X_scaling="minmax",y_scaling="minmax" ,batch_size=config["batch_size"], typeD = "tensor")
         if config['optimizer'] == 'Adam':
             optimizer = optim.Adam(model.parameters(), lr=config['lr'])
         else:
@@ -39,7 +44,7 @@ class PyTorchWorker(Worker):
         for _epoch in range(int(budget)):
             loss = 0
             model.train()
-            for _idx , data in enumerate(self.train_loader):
+            for _idx , data in enumerate(train_loader):
                 inputs, labels = data
                 #print("Input shape: ", inputs.shape)
                 #print("label shape: ", labels.shape)
@@ -49,9 +54,9 @@ class PyTorchWorker(Worker):
                 loss.backward()
                 optimizer.step()
 
-            train_loss = self.evaluate_loss(model, self.train_loader, criterion)
-            validation_loss = self.evaluate_loss(model, self.validation_loader, criterion)
-            test_loss = self.evaluate_loss(model, self.test_loader, criterion)
+            train_loss = self.evaluate_loss(model, train_loader, criterion)
+            validation_loss = self.evaluate_loss(model, validation_loader, criterion)
+            test_loss = self.evaluate_loss(model, test_loader, criterion)
 
             return ({
                     'loss': validation_loss,
@@ -98,6 +103,8 @@ class PyTorchWorker(Worker):
             #Number of layers in the MLP
             num_layers =  CSH.UniformIntegerHyperparameter(name='num_layers', lower=3, upper=8)
             cs.add_hyperparameters([num_layers])
+            batch_size = CSH.UniformIntegerHyperparameter(name='batch_size', lower=1, upper=10)
+            cs.add_hyperparameters([batch_size])
             dropout_rate = CSH.UniformFloatHyperparameter(name='dropout_rate', lower=0.0, upper=0.9, default_value=0.5, log=False)
             cs.add_hyperparameters([dropout_rate])
             return cs

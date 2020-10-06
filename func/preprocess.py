@@ -4,6 +4,7 @@
 import numpy as np
 from sklearn import  preprocessing
 from math import isnan
+from torch import from_numpy
 
 def delete_constant_features_X(X):
     '''This function removes the constant features in the input''' 
@@ -30,6 +31,21 @@ def scale_features(X, method=None):
         min_max_scaler = preprocessing.MinMaxScaler()
         x_minmax = min_max_scaler.fit_transform(X)
         return x_minmax
+    else:
+        return X
+
+def inverse_scaler(X, method=None):
+    '''Rescale output for computation of MSE'''
+    if method == "znorm":
+        std_scaler = preprocessing.StandardScaler()
+        std_scaler.fit(X)
+        rescaled_std_X = std_scaler.inverse_transform(X)
+        return from_numpy(rescaled_std_X)
+    elif method == "minmax":
+        min_max_scaler = preprocessing.MinMaxScaler()
+        min_max_scaler.fit(X)
+        rescaled_minmax_x = min_max_scaler.inverse_transform(X)
+        return from_numpy(rescaled_minmax_x)
     else:
         return X
     

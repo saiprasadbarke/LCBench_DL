@@ -41,34 +41,30 @@ def create_metafeatures_array(metafeatures_dict, dataset_names):
             metafeatures_list.append(metafeatures_dict[dataset])
     return np.array(metafeatures_list)
 
-def prepare_dataloaders(X_hp, X_mf, y, scaling = None, batch_size = None):
+def prepare_dataloaders(X_hp, X_mf, y, X_scaling = None, y_scaling=None, batch_size = None, typeD = "tensor"):
     '''This function is used to delete constant features, reshape data, scale data, concatenate hyperparameters and dataset metafeatures , convert data to tensors and prepare dataloaders'''
     X_hp_transformed = delete_constant_features_X(X_hp)
     X_mf_transformed = create_metafeatures_2d(X_mf)
     y_transformed = reshape_op(y)
-    #print("X_hp_transformed:", X_hp_transformed.shape)
-    #print("X_mf_transformed:", X_mf_transformed.shape)
-    #print("y_transformed:", y_transformed.shape)
-    #print() 
-    X_hp_scaled = scale_features(X_hp_transformed, method=scaling)
-    X_mf_scaled = scale_features(X_mf_transformed, method=scaling)
-    y_scaled = scale_features(y_transformed, method=scaling)
-    #print("X_hp_scaled:", X_hp_scaled.shape)
-    #print("X_mf_scaled:", X_mf_scaled.shape)
-    #print("y_scaled:", y_scaled.shape)
-    #print() 
-    X_features = concatenate_metafeatures_features(X_hp_scaled, X_mf_scaled)
-    #print("X_features:", X_features.shape)
-    #print()
-    X_features_tensor = from_numpy(X_features.astype(np.float32))
-    y_labels_tensor = from_numpy(y_scaled.astype(np.float32))
-    #print("X_features_tensor:", X_features_tensor.shape)
-    #print("y_labels_tensor:", y_labels_tensor.shape)
-    #print() 
-    dataset = TensorDataset(X_features_tensor, y_labels_tensor)
-    dataloader = DataLoader(dataset, batch_size = batch_size, shuffle= True, num_workers=2)
 
-    return dataloader
+    X_hp_scaled = scale_features(X_hp_transformed, method=X_scaling)
+    X_mf_scaled = scale_features(X_mf_transformed, method=X_scaling)
+    if y_scaling is not None:
+        y_scaled = scale_features(y_transformed, method=y_scaling)
+    else:
+        y_scaled = y
+
+    X_features = concatenate_metafeatures_features(X_hp_scaled, X_mf_scaled)
+    
+    if typeD == "tensor":
+        X_features_tensor = from_numpy(X_features.astype(np.float32))
+        y_labels_tensor = from_numpy(y_scaled.astype(np.float32))
+
+        dataset = TensorDataset(X_features_tensor, y_labels_tensor)
+        dataloader = DataLoader(dataset, batch_size = batch_size, shuffle= True, num_workers=2)
+        return dataloader
+    else: 
+        return X_features, y_scaled
 
 def load_data_from_file(path_hyperparams, path_metafeatures):
     '''This function navigates to the locations pointed in the arguments and loads the data from the json files and returns the data as numpy arrays'''

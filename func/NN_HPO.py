@@ -9,6 +9,7 @@ import numpy as np
 
 from networks.MyMLP import MyMLP
 from func.load_data import prepare_dataloaders
+from func.preprocess import inverse_scaler
 import ConfigSpace as CS
 import ConfigSpace.hyperparameters as CSH
 from hpbandster.core.worker import Worker
@@ -75,7 +76,8 @@ class PyTorchWorker(Worker):
             for _idx , data in enumerate(data_loader):
                 inputs, labels = data
                 outputs = model(inputs)
-                loss = criterion(outputs, labels)
+                rescaled_outputs = inverse_scaler(outputs, method="minmax")
+                loss = criterion(rescaled_outputs, labels)
                 test_losses.append(loss.item())
             mean_loss = np.mean(test_losses)        
         return(mean_loss)

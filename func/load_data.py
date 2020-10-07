@@ -41,7 +41,7 @@ def create_metafeatures_array(metafeatures_dict, dataset_names):
             metafeatures_list.append(metafeatures_dict[dataset])
     return np.array(metafeatures_list)
 
-def prepare_dataloaders(X_hp, X_mf, y, X_scaling = None, y_scaling=None, batch_size = None, typeD = "tensor"):
+def prepare_dataloaders(X_hp, X_mf, y, X_scaling = None, y_scaling=None, batch_size = None, typeD = None):
     '''This function is used to delete constant features, reshape data, scale data, concatenate hyperparameters and dataset metafeatures , convert data to tensors and prepare dataloaders'''
     X_hp_transformed = delete_constant_features_X(X_hp)
     X_mf_transformed = create_metafeatures_2d(X_mf)

@@ -76,8 +76,8 @@ class PyTorchWorker(Worker):
             for _idx , data in enumerate(data_loader):
                 inputs, labels = data
                 outputs = model(inputs)
-                rescaled_outputs = inverse_scaler(outputs, method="minmax")
-                loss = criterion(rescaled_outputs, labels)
+                #rescaled_outputs = inverse_scaler(outputs)
+                loss = criterion(outputs, labels)
                 test_losses.append(loss.item())
             mean_loss = np.mean(test_losses)        
         return(mean_loss)
